@@ -148,6 +148,6 @@ insert_or_update_fuel_prices_task = PythonOperator(
 # Set task dependencies
 wait_for_bp_data_collection >> create_fuel_price_table_task
 wait_for_mobil_data_collection >> create_fuel_price_table_task
-wait_for_paknsave_data_collection >> create_fuel_price_table_task
-wait_for_z_data_collection >> create_fuel_price_table_task
+# wait_for_paknsave_data_collection >> create_fuel_price_table_task
+# wait_for_z_data_collection >> create_fuel_price_table_task
 create_fuel_price_table_task >> insert_or_update_fuel_prices_task
