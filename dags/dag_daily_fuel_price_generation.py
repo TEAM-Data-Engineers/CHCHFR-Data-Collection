@@ -26,45 +26,45 @@ dag = DAG(
 )
 
 # Wait for data collection DAGs
-wait_for_bp_data_collection = ExternalTaskSensor(
-    task_id='wait_for_bp_data_collection',
-    external_dag_id='collection_data_from_bp_v1',
-    external_task_id='check_and_insert_data',
-    timeout=600,
-    poke_interval=30,
-    mode='poke',
-    dag=dag,
-)
+# wait_for_bp_data_collection = ExternalTaskSensor(
+#     task_id='wait_for_bp_data_collection',
+#     external_dag_id='collection_data_from_bp_v1',
+#     external_task_id='check_and_insert_data',
+#     timeout=600,
+#     poke_interval=30,
+#     mode='poke',
+#     dag=dag,
+# )
 
-wait_for_mobil_data_collection = ExternalTaskSensor(
-    task_id='wait_for_mobil_data_collection',
-    external_dag_id='collection_data_from_mobil_v5',
-    external_task_id='check_and_insert_data',
-    timeout=600,
-    poke_interval=30,
-    mode='poke',
-    dag=dag,
-)
+# wait_for_mobil_data_collection = ExternalTaskSensor(
+#     task_id='wait_for_mobil_data_collection',
+#     external_dag_id='collection_data_from_mobil_v5',
+#     external_task_id='check_and_insert_data',
+#     timeout=600,
+#     poke_interval=30,
+#     mode='poke',
+#     dag=dag,
+# )
 
-wait_for_paknsave_data_collection = ExternalTaskSensor(
-    task_id='wait_for_paknsave_data_collection',
-    external_dag_id='collection_data_from_paknsave_v10',
-    external_task_id='fetch_and_insert_gas_stations',
-    timeout=600,
-    poke_interval=30,
-    mode='poke',
-    dag=dag,
-)
+# wait_for_paknsave_data_collection = ExternalTaskSensor(
+#     task_id='wait_for_paknsave_data_collection',
+#     external_dag_id='collection_data_from_paknsave_v10',
+#     external_task_id='fetch_and_insert_gas_stations',
+#     timeout=600,
+#     poke_interval=30,
+#     mode='poke',
+#     dag=dag,
+# )
 
-wait_for_z_data_collection = ExternalTaskSensor(
-    task_id='wait_for_z_data_collection',
-    external_dag_id='collection_data_from_z_v3',
-    external_task_id='check_and_insert_data',
-    timeout=600,
-    poke_interval=30,
-    mode='poke',
-    dag=dag,
-)
+# wait_for_z_data_collection = ExternalTaskSensor(
+#     task_id='wait_for_z_data_collection',
+#     external_dag_id='collection_data_from_z_v3',
+#     external_task_id='check_and_insert_data',
+#     timeout=600,
+#     poke_interval=30,
+#     mode='poke',
+#     dag=dag,
+# )
 
 def generate_random_price(base_price):
     return round(random.uniform(base_price - 0.37, base_price + 0.23), 2)
@@ -146,8 +146,8 @@ insert_or_update_fuel_prices_task = PythonOperator(
 )
 
 # Set task dependencies
-wait_for_bp_data_collection >> create_fuel_price_table_task
-wait_for_mobil_data_collection >> create_fuel_price_table_task
+# wait_for_bp_data_collection >> create_fuel_price_table_task
+# wait_for_mobil_data_collection >> create_fuel_price_table_task
 # wait_for_paknsave_data_collection >> create_fuel_price_table_task
 # wait_for_z_data_collection >> create_fuel_price_table_task
 create_fuel_price_table_task >> insert_or_update_fuel_prices_task

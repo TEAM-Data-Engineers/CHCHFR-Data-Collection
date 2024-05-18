@@ -14,7 +14,7 @@ default_args = {
 }
 
 dag = DAG(
-    "daily_fetch_and_process_data",
+    "collection_data_from_mobil_v1",
     default_args=default_args,
     description="Fetch and process data from Mobil daily",
     schedule_interval="0 0 * * *",  # Run daily at midnight
