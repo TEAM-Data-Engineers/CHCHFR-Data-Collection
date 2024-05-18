@@ -6,6 +6,11 @@ initdb.py
 secrets.py
 webserver_config.py
 
+# Ignore __pycache__ directories and .pyc files
+__pycache__/
+*.pyc
+
+
 # Airflow sqlite databases
 airflow.db
 
