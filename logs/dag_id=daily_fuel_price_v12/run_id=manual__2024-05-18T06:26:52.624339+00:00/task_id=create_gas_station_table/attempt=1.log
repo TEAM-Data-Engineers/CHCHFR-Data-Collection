@@ -1,0 +1,18 @@
+[2024-05-18T06:26:54.971+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2024-05-18T06:26:55.022+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: daily_fuel_price_v12.create_gas_station_table manual__2024-05-18T06:26:52.624339+00:00 [queued]>
+[2024-05-18T06:26:55.031+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: daily_fuel_price_v12.create_gas_station_table manual__2024-05-18T06:26:52.624339+00:00 [queued]>
+[2024-05-18T06:26:55.031+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 6
+[2024-05-18T06:26:55.046+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): create_gas_station_table> on 2024-05-18 06:26:52.624339+00:00
+[2024-05-18T06:26:55.050+0000] {standard_task_runner.py:63} INFO - Started process 17423 to run task
+[2024-05-18T06:26:55.054+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'daily_fuel_price_v12', 'create_gas_station_table', 'manual__2024-05-18T06:26:52.624339+00:00', '--job-id', '79', '--raw', '--subdir', 'DAGS_FOLDER/dag_daily_fuel_price_generation.py', '--cfg-path', '/tmp/tmpq86tuypr']
+[2024-05-18T06:26:55.056+0000] {standard_task_runner.py:91} INFO - Job 79: Subtask create_gas_station_table
+[2024-05-18T06:26:55.146+0000] {task_command.py:426} INFO - Running <TaskInstance: daily_fuel_price_v12.create_gas_station_table manual__2024-05-18T06:26:52.624339+00:00 [running]> on host ip-10-0-1-99
+[2024-05-18T06:26:55.348+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Aemon' AIRFLOW_CTX_DAG_ID='daily_fuel_price_v12' AIRFLOW_CTX_TASK_ID='create_gas_station_table' AIRFLOW_CTX_EXECUTION_DATE='2024-05-18T06:26:52.624339+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-05-18T06:26:52.624339+00:00'
+[2024-05-18T06:26:55.349+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2024-05-18T06:26:55.400+0000] {logging_mixin.py:188} INFO - Table gas_station created successfully
+[2024-05-18T06:26:55.401+0000] {python.py:237} INFO - Done. Returned value was: None
+[2024-05-18T06:26:55.402+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2024-05-18T06:26:55.621+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=daily_fuel_price_v12, task_id=create_gas_station_table, run_id=manual__2024-05-18T06:26:52.624339+00:00, execution_date=20240518T062652, start_date=20240518T062655, end_date=20240518T062655
+[2024-05-18T06:26:55.676+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2024-05-18T06:26:55.723+0000] {taskinstance.py:3498} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2024-05-18T06:26:55.725+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

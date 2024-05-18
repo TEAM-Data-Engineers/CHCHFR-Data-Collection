@@ -1,0 +1,20 @@
+[2024-05-18T06:18:11.486+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2024-05-18T06:18:11.553+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: daily_fuel_price_v12.insert_or_update_daily_fuel_prices manual__2024-05-18T06:18:05.454882+00:00 [queued]>
+[2024-05-18T06:18:11.577+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: daily_fuel_price_v12.insert_or_update_daily_fuel_prices manual__2024-05-18T06:18:05.454882+00:00 [queued]>
+[2024-05-18T06:18:11.578+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 6
+[2024-05-18T06:18:11.614+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): insert_or_update_daily_fuel_prices> on 2024-05-18 06:18:05.454882+00:00
+[2024-05-18T06:18:11.620+0000] {standard_task_runner.py:63} INFO - Started process 17276 to run task
+[2024-05-18T06:18:11.627+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'daily_fuel_price_v12', 'insert_or_update_daily_fuel_prices', 'manual__2024-05-18T06:18:05.454882+00:00', '--job-id', '78', '--raw', '--subdir', 'DAGS_FOLDER/dag_daily_fuel_price_generation.py', '--cfg-path', '/tmp/tmppaf8plpw']
+[2024-05-18T06:18:11.629+0000] {standard_task_runner.py:91} INFO - Job 78: Subtask insert_or_update_daily_fuel_prices
+[2024-05-18T06:18:11.757+0000] {task_command.py:426} INFO - Running <TaskInstance: daily_fuel_price_v12.insert_or_update_daily_fuel_prices manual__2024-05-18T06:18:05.454882+00:00 [running]> on host ip-10-0-1-99
+[2024-05-18T06:18:11.985+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Aemon' AIRFLOW_CTX_DAG_ID='daily_fuel_price_v12' AIRFLOW_CTX_TASK_ID='insert_or_update_daily_fuel_prices' AIRFLOW_CTX_EXECUTION_DATE='2024-05-18T06:18:05.454882+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-05-18T06:18:05.454882+00:00'
+[2024-05-18T06:18:11.986+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2024-05-18T06:18:12.083+0000] {logging_mixin.py:188} INFO - Error: relation "gas_station" does not exist
+LINE 1: SELECT location_id FROM gas_station
+                                ^
+[2024-05-18T06:18:12.084+0000] {python.py:237} INFO - Done. Returned value was: None
+[2024-05-18T06:18:12.085+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2024-05-18T06:18:12.265+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=daily_fuel_price_v12, task_id=insert_or_update_daily_fuel_prices, run_id=manual__2024-05-18T06:18:05.454882+00:00, execution_date=20240518T061805, start_date=20240518T061811, end_date=20240518T061812
+[2024-05-18T06:18:12.330+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2024-05-18T06:18:12.369+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2024-05-18T06:18:12.372+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
