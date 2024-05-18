@@ -247,3 +247,4 @@ licenses/LICENSES-ui.txt
 airflow-build-dockerfile*
 
 airflow_env/
+airflow.cfg
