@@ -38,9 +38,11 @@ wait_for_table_creation = ExternalTaskSensor(
 def get_station_data():
     url = "https://www.z.co.nz/find-a-station"
     try:
+        logging.info(f"Fetching data from URL: {url}")
         response = requests.get(url)
         response.raise_for_status()
         html_content = response.content
+        logging.info("Successfully fetched HTML content")
         soup = BeautifulSoup(html_content, "html.parser")
         div_locator = soup.find("div", class_="locator")
         if div_locator:
@@ -51,8 +53,10 @@ def get_station_data():
                 logging.info("Successfully fetched and parsed station data")
                 return stations_data
             else:
+                logging.error("Cannot find data-props attribute in div element")
                 raise Exception("Cannot find data-props attribute in div element")
         else:
+            logging.error("Cannot find locator class in div element")
             raise Exception("Cannot find locator class in div element")
     except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching station data: {e}")
@@ -62,6 +66,7 @@ def get_station_data():
         raise
 
 def check_and_insert_data():
+    logging.info("Starting check_and_insert_data task")
     stations_data = get_station_data()
 
     hook = PostgresHook(postgres_conn_id='postgres_default')
@@ -71,6 +76,7 @@ def check_and_insert_data():
     try:
         for station_data in stations_data:
             location_id = station_data.get('externalID')
+            logging.info(f"Processing station: {location_id}")
             cur.execute("SELECT COUNT(*) FROM gas_station WHERE location_id = %s", (location_id,))
             count = cur.fetchone()[0]
             if count == 0:
@@ -100,6 +106,7 @@ def check_and_insert_data():
             else:
                 logging.info(f"Data already exists for location: {location_id}")
         conn.commit()
+        logging.info("Data insertion completed successfully")
     except Exception as e:
         logging.error(f"Error inserting data: {e}")
         conn.rollback()
