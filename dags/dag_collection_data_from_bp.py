@@ -4,7 +4,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from datetime import datetime
 import requests
 import logging
-from entities.gas_station_schema import GasStation
+from entities import GasStation
 
 # Default arguments for the DAG
 default_args = {
@@ -14,12 +14,12 @@ default_args = {
     'retries': 5,
 }
 
-# Define the DAG
 dag = DAG(
     'collection_data_from_bp_v1',
     default_args=default_args,
     description='Collection remote data from BP and store into PostgreSQL',
     schedule_interval='0 0 * * *',  # Run daily at midnight
+    catchup=False,
 )
 
 def get_remote_json():
@@ -35,14 +35,14 @@ def get_remote_json():
         raise
 
 def check_and_insert_data():
-    json_data = get_remote_json()
-
-    hook = PostgresHook(postgres_conn_id='postgres_default')
-    conn = hook.get_conn()
-    cur = conn.cursor()
-
     try:
-        for location_json in json_data:
+        remote_data = get_remote_json()
+
+        hook = PostgresHook(postgres_conn_id='postgres_default')
+        conn = hook.get_conn()
+        cur = conn.cursor()
+
+        for location_json in remote_data:
             location = GasStation(
                 location_id=location_json['id'],
                 brand_name=location_json['site_brand'],
@@ -55,33 +55,38 @@ def check_and_insert_data():
                 postal_code=location_json['postcode'],
                 country=location_json['country_code']
             )
+
+            logging.info(f"Checking data for location: {location.location_id}")
+
             cur.execute("SELECT COUNT(*) FROM gas_station WHERE location_id = %s", (location.location_id,))
             count = cur.fetchone()[0]
+
             if count == 0:
+                logging.info(f"Inserting data for location: {location.location_id}")
                 cur.execute("""
                     INSERT INTO gas_station (
-                        location_id, brand_name, location_name, latitude, longitude, 
+                        location_id, brand_name, location_name, latitude, longitude,
                         address_line1, city, state_province, postal_code, country
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     location.location_id, location.brand_name, location.location_name,
                     location.latitude, location.longitude, location.address_line1,
-                    location.city, location.state_province, location.postal_code, location.country
+                    location.city, location.state_province, location.postal_code,
+                    location.country
                 ))
-                logging.info(f"Inserted data for location: {location.location_id}")
             else:
                 logging.info(f"Data already exists for location: {location.location_id}")
+
         conn.commit()
-    except Exception as e:
-        logging.error(f"Error inserting data: {e}")
-        conn.rollback()
-        raise
-    finally:
         cur.close()
         conn.close()
         logging.info("Database connection closed")
 
-# Define the tasks
+    except Exception as e:
+        logging.error(f"Error inserting data: {e}")
+        raise
+
+# Define tasks
 task_get_remote_json = PythonOperator(
     task_id='get_remote_json',
     python_callable=get_remote_json,
@@ -94,5 +99,4 @@ task_check_and_insert_data = PythonOperator(
     dag=dag,
 )
 
-# Set task dependencies
 task_get_remote_json >> task_check_and_insert_data
