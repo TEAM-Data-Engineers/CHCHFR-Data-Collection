@@ -2,29 +2,13 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import json
-import psycopg2
-from psycopg2 import Error
-from entities import GasStation
-
-class Station:
-    def __init__(self, name, externalID, address, suburb, city, postcode, region, latitude, longitude, type, type_slug, isPayAtPump247, phone):
-        self.name = name
-        self.externalID = externalID
-        self.address = address
-        self.suburb = suburb
-        self.city = city
-        self.postcode = postcode
-        self.region = region
-        self.latitude = latitude
-        self.longitude = longitude
-        self.type = type
-        self.type_slug = type_slug
-        self.isPayAtPump247 = isPayAtPump247
-        self.phone = phone
+import logging
+from entities.gas_station_schema import GasStation
 
 default_args = {
     'owner': 'Aemon',
@@ -37,89 +21,100 @@ dag = DAG(
     'collection_data_from_z_v3',
     default_args=default_args,
     description='A DAG to collect Z Energy station data and insert into PostgreSQL',
-    schedule_interval='0 0 * * *',  # Daily at midnight
+    schedule_interval='0 1 * * *',  # Daily at 1 AM
+    catchup=False
+)
+
+wait_for_table_creation = ExternalTaskSensor(
+    task_id='wait_for_table_creation',
+    external_dag_id='create_gas_station_table',
+    external_task_id='create_gas_station_table',
+    timeout=600,
+    poke_interval=30,
+    mode='poke',
+    dag=dag,
 )
 
 def get_station_data():
     url = "https://www.z.co.nz/find-a-station"
-    response = requests.get(url)
-    html_content = response.content
-    soup = BeautifulSoup(html_content, "html.parser")
-    div_locator = soup.find("div", class_="locator")
-    if div_locator:
-        div_data_props = div_locator.find("div", attrs={"data-props": True})
-        if div_data_props:
-            data_props_json = json.loads(div_data_props["data-props"])
-            stations_data = data_props_json.get("stations", [])
-            return stations_data
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        html_content = response.content
+        soup = BeautifulSoup(html_content, "html.parser")
+        div_locator = soup.find("div", class_="locator")
+        if div_locator:
+            div_data_props = div_locator.find("div", attrs={"data-props": True})
+            if div_data_props:
+                data_props_json = json.loads(div_data_props["data-props"])
+                stations_data = data_props_json.get("stations", [])
+                logging.info("Successfully fetched and parsed station data")
+                return stations_data
+            else:
+                raise Exception("Cannot find data-props attribute in div element")
         else:
-            raise Exception("Cannot find data-props attribute in div element")
-    else:
-        raise Exception("Cannot find locator class in div element")
+            raise Exception("Cannot find locator class in div element")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching station data: {e}")
+        raise
+    except Exception as e:
+        logging.error(f"Error parsing station data: {e}")
+        raise
 
 def check_and_insert_data():
     stations_data = get_station_data()
+
+    hook = PostgresHook(postgres_conn_id='postgres_default')
+    conn = hook.get_conn()
+    cur = conn.cursor()
+
     try:
-        # Connect to the PostgreSQL database
-        conn = psycopg2.connect(
-            database="p_database",
-            user="root",
-            password="password",
-            host="host.docker.internal",
-            port="5433"
-        )
-        cur = conn.cursor()
-        
-        # Iterate through stations data
         for station_data in stations_data:
-            # Check if station with externalID already exists in the database
-            sql = f"SELECT COUNT(*) FROM gas_station WHERE location_id = '{station_data.get('externalID')}'"
-            cur.execute(sql)
+            location_id = station_data.get('externalID')
+            cur.execute("SELECT COUNT(*) FROM gas_station WHERE location_id = %s", (location_id,))
             count = cur.fetchone()[0]
             if count == 0:
-                # Insert station data into the database
-                sql = """
-                INSERT INTO gas_station (location_id, brand_name, location_name, latitude, longitude, address_line1, city, state_province, postal_code, country)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                values = (
-                    station_data.get("externalID"),
-                    "Z Energy",
-                    station_data.get("name"),
-                    station_data.get("latitude"),
-                    station_data.get("longitude"),
-                    station_data.get("address"),
-                    station_data.get("city"),
-                    station_data.get("region"),
-                    station_data.get("postcode"),
-                    "NZ"
+                gas_station = GasStation(
+                    location_id=location_id,
+                    brand_name="Z Energy",
+                    location_name=station_data.get("name"),
+                    latitude=station_data.get("latitude"),
+                    longitude=station_data.get("longitude"),
+                    address_line1=station_data.get("address"),
+                    city=station_data.get("city"),
+                    state_province=station_data.get("region"),
+                    postal_code=station_data.get("postcode"),
+                    country="NZ"
                 )
-
-                cur.execute(sql, values)
-                conn.commit()
-                print(f"Inserted new station: {station_data.get('name')}")
+                cur.execute("""
+                    INSERT INTO gas_station (
+                        location_id, brand_name, location_name, latitude, longitude, 
+                        address_line1, city, state_province, postal_code, country
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    gas_station.location_id, gas_station.brand_name, gas_station.location_name,
+                    gas_station.latitude, gas_station.longitude, gas_station.address_line1,
+                    gas_station.city, gas_station.state_province, gas_station.postal_code, gas_station.country
+                ))
+                logging.info(f"Inserted data for location: {location_id}")
             else:
-                print(f"Station already exists: {station_data.get('name')}")
-    except Error as e:
-        print(f"Error: {e}")
+                logging.info(f"Data already exists for location: {location_id}")
+        conn.commit()
+    except Exception as e:
+        logging.error(f"Error inserting data: {e}")
+        conn.rollback()
+        raise
     finally:
-        # Close database connection
-        if conn:
-            cur.close()
-            conn.close()
+        cur.close()
+        conn.close()
+        logging.info("Database connection closed")
 
-# Define tasks
-get_data_task = PythonOperator(
-    task_id='get_data',
-    python_callable=get_station_data,
-    dag=dag,
-)
-
-check_and_insert_task = PythonOperator(
-    task_id='check_and_insert',
+# Define the tasks
+task_check_and_insert_data = PythonOperator(
+    task_id='check_and_insert_data',
     python_callable=check_and_insert_data,
     dag=dag,
 )
 
 # Define task dependencies
-get_data_task >> check_and_insert_task
+wait_for_table_creation >> task_check_and_insert_data

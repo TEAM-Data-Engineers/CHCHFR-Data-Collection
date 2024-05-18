@@ -1,19 +1,13 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python_operator import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from datetime import datetime, timedelta
 import random
-import psycopg2
+import logging
 
-# Database connection parameters
-db_params = {
-    'database': 'chchfr',
-    'user': 'postgres',
-    'password': '8mhtjGJXz8KgisMJRWMC',
-    'host': 'data472-hwa205-database-1.cyi9p9kw8doa.ap-southeast-2.rds.amazonaws.com',
-    'port': '5432'
-}
-
-# Default arguments
+# Default arguments for the DAG
 default_args = {
     'owner': 'Aemon',
     'depends_on_past': False,
@@ -22,12 +16,54 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-# Create DAG
+# Create the DAG
 dag = DAG(
-    'daily_fuel_price_v12',
+    'daily_fuel_price_generation',
     default_args=default_args,
     description='Daily generation of fuel prices for gas stations',
-    schedule_interval='0 0 * * *',
+    schedule_interval='0 2 * * *',  # Run daily at 2 AM
+    catchup=False
+)
+
+# Wait for data collection DAGs
+wait_for_bp_data_collection = ExternalTaskSensor(
+    task_id='wait_for_bp_data_collection',
+    external_dag_id='collection_data_from_bp_v1',
+    external_task_id='check_and_insert_data',
+    timeout=600,
+    poke_interval=30,
+    mode='poke',
+    dag=dag,
+)
+
+wait_for_mobil_data_collection = ExternalTaskSensor(
+    task_id='wait_for_mobil_data_collection',
+    external_dag_id='collection_data_from_mobil_v5',
+    external_task_id='check_and_insert_data',
+    timeout=600,
+    poke_interval=30,
+    mode='poke',
+    dag=dag,
+)
+
+wait_for_paknsave_data_collection = ExternalTaskSensor(
+    task_id='wait_for_paknsave_data_collection',
+    external_dag_id='collection_data_from_paknsave_v10',
+    external_task_id='fetch_and_insert_gas_stations',
+    timeout=600,
+    poke_interval=30,
+    mode='poke',
+    dag=dag,
+)
+
+wait_for_z_data_collection = ExternalTaskSensor(
+    task_id='wait_for_z_data_collection',
+    external_dag_id='collection_data_from_z_v3',
+    external_task_id='check_and_insert_data',
+    timeout=600,
+    poke_interval=30,
+    mode='poke',
+    dag=dag,
 )
 
 def generate_random_price(base_price):
@@ -43,32 +79,6 @@ def fetch_gaspy_prices():
     }
     return prices
 
-def create_gas_station_table():
-    query = """
-    CREATE TABLE IF NOT EXISTS gas_station (
-        location_id VARCHAR(50) PRIMARY KEY,
-        brand_name VARCHAR(50),
-        location_name VARCHAR(50),
-        latitude FLOAT,
-        longitude FLOAT,
-        address_line1 VARCHAR(100),
-        city VARCHAR(50),
-        state_province VARCHAR(50),
-        postal_code VARCHAR(20),
-        country VARCHAR(50)
-    );
-    """
-    try:
-        conn = psycopg2.connect(**db_params)
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("Table gas_station created successfully")
-    except Exception as e:
-        print("Error:", e)
-
 def create_fuel_price_table():
     query = """
     CREATE TABLE IF NOT EXISTS fuel_price (
@@ -81,32 +91,23 @@ def create_fuel_price_table():
     );
     """
     try:
-        conn = psycopg2.connect(**db_params)
+        hook = PostgresHook(postgres_conn_id='postgres_default')
+        conn = hook.get_conn()
         cur = conn.cursor()
         cur.execute(query)
         conn.commit()
         cur.close()
         conn.close()
-        print("Table fuel_price created successfully")
+        logging.info("Table fuel_price created successfully")
     except Exception as e:
-        print("Error:", e)
-
-create_gas_station_table_task = PythonOperator(
-    task_id='create_gas_station_table',
-    python_callable=create_gas_station_table,
-    dag=dag,
-)
-
-create_fuel_price_table_task = PythonOperator(
-    task_id='create_fuel_price_table',
-    python_callable=create_fuel_price_table,
-    dag=dag,
-)
+        logging.error(f"Error creating table: {e}")
+        raise
 
 def insert_or_update_daily_fuel_prices():
     try:
         base_prices = fetch_gaspy_prices()
-        conn = psycopg2.connect(**db_params)
+        hook = PostgresHook(postgres_conn_id='postgres_default')
+        conn = hook.get_conn()
         cur = conn.cursor()
 
         cur.execute("SELECT location_id FROM gas_station")
@@ -126,15 +127,27 @@ def insert_or_update_daily_fuel_prices():
         conn.commit()
         cur.close()
         conn.close()
-        print("Daily fuel prices inserted or updated successfully")
+        logging.info("Daily fuel prices inserted or updated successfully")
     except Exception as e:
-        print("Error:", e)
+        logging.error(f"Error inserting or updating fuel prices: {e}")
+        raise
 
-insert_prices_task = PythonOperator(
-    task_id='insert_or_update_daily_fuel_prices',
+# Define the tasks
+create_fuel_price_table_task = PythonOperator(
+    task_id='create_fuel_price_table',
+    python_callable=create_fuel_price_table,
+    dag=dag,
+)
+
+insert_or_update_fuel_prices_task = PythonOperator(
+    task_id='insert_or_update_fuel_prices',
     python_callable=insert_or_update_daily_fuel_prices,
     dag=dag,
 )
 
 # Set task dependencies
-create_gas_station_table_task >> create_fuel_price_table_task >> insert_prices_task
+wait_for_bp_data_collection >> create_fuel_price_table_task
+wait_for_mobil_data_collection >> create_fuel_price_table_task
+wait_for_paknsave_data_collection >> create_fuel_price_table_task
+wait_for_z_data_collection >> create_fuel_price_table_task
+create_fuel_price_table_task >> insert_or_update_fuel_prices_task
