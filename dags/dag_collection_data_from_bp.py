@@ -15,7 +15,7 @@ default_args = {
 }
 
 dag = DAG(
-    'collection_data_from_bp_v1',
+    'Team_collection_data_from_bp_v1',
     default_args=default_args,
     description='Collection remote data from BP and store into PostgreSQL',
     schedule_interval='0 0 * * *',  # Run daily at midnight

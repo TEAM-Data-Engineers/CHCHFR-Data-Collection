@@ -18,7 +18,7 @@ default_args = {
 
 # Create the DAG
 dag = DAG(
-    'daily_fuel_price_generation',
+    'Team_daily_fuel_price_generation',
     default_args=default_args,
     description='Daily generation of fuel prices for gas stations',
     schedule_interval='0 2 * * *',  # Run daily at 2 AM

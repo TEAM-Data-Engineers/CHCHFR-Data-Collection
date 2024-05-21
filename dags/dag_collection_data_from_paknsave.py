@@ -33,7 +33,7 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    "collection_data_from_paknsave_v10",
+    "Team_collection_data_from_paknsave_v10",
     default_args=default_args,
     description="Fetch and insert gas stations into PostgreSQL database",
     schedule_interval="@daily",

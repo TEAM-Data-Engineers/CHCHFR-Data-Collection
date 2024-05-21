@@ -33,7 +33,7 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    "collection_data_from_z_energy_v1",
+    "Team_collection_data_from_z_energy_v1",
     default_args=default_args,
     description="Fetch and insert Z Energy gas stations into PostgreSQL database",
     schedule_interval="@daily",
