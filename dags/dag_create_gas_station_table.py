@@ -13,7 +13,7 @@ default_args = {
 }
 
 dag = DAG(
-    'create_gas_station_table',
+    'Team_create_gas_station_table',
     default_args=default_args,
     description='Create gas_station table in PostgreSQL',
     schedule_interval='@once',  # Run only once
@@ -39,7 +39,7 @@ def log_success():
     logging.info("Successfully created the gas_station table.")
 
 create_table_task = PostgresOperator(
-    task_id='Team_create_gas_station_table',
+    task_id='create_gas_station_table',
     postgres_conn_id='postgres_default',
     sql=create_table_sql,
     dag=dag,
