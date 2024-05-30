@@ -1,6 +1,6 @@
 # CHCH-Fuel-Recommendator Data Collection
 
-This repository contains DAGs for the CHCH-Fuel-Recommendator project, which collects data from various fuel stations and stores it in a PostgreSQL database. The project is structured to run daily data collection and update fuel prices.
+This repository contains DAGs for the CHCH-Fuel-Recommendator project, which collects data from various official websites of fuel stations and stores it in a PostgreSQL database. The project is structured to run daily data collection and update fuel prices. This is the Data472 course group project of TEAM, which is the first stage of collecting data and store in Postgresql. 
 
 ## Project Structure
 
